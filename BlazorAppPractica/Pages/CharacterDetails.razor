@@ -1,0 +1,94 @@
+﻿﻿@page "/pokemon/{pokemonId:int}"
+@inject HttpClient Http
+
+@*Estilo Card*@
+<style>
+    .pokemon-card {
+        border: 1px solid #ccc;
+        border-radius: 15px;
+        padding: 49px;
+        max-width: 400px;
+        margin: 0 auto;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .pokemon-card img {
+        display: block;
+        margin: 16px auto;
+    }
+</style>
+
+<PageTitle>Pokemon Details</PageTitle>
+
+<h1>Information Pokemon</h1>
+
+<div class="pokemon-card">
+    @if (pokemon == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(pokemon.Sprites?.FrontDefault))
+        {
+            <img src="@pokemon.Sprites.FrontDefault" alt="@pokemon.Name" style="max-width: 300px;" />
+        }
+        <p><strong>Name:</strong> @pokemon.Name</p>
+        <p><strong>Height:</strong> @pokemon.Height</p>
+        <p><strong>Weight:</strong> @pokemon.Weight</p>
+        <p><strong>Type:</strong> @string.Join(", ", pokemon.Types.Select(t => t.Type.Name))</p>
+    }
+</div>
+
+@code {
+    private Pokemon pokemon;
+
+    [Parameter]
+    public int PokemonId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPokemonAsync();
+    }
+
+    private async Task LoadPokemonAsync()
+    {
+        var response = await Http.GetAsync($"https://pokeapi.co/api/v2/pokemon/{PokemonId}/");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            pokemon = Newtonsoft.Json.JsonConvert.DeserializeObject<Pokemon>(json);
+        }
+        else
+        {
+            pokemon = null;
+        }
+    }
+
+    // Entidad Pokemon
+    public class Pokemon
+    {
+        public string Name { get; set; }
+        public int Height { get; set; }
+        public int Weight { get; set; }
+        public PokemonSprites Sprites { get; set; }
+        public List<PokemonTypeSlot> Types { get; set; }
+    }
+
+    public class PokemonSprites
+    {
+        public string FrontDefault { get; set; }
+    }
+
+    public class PokemonTypeSlot
+    {
+        public PokemonType Type { get; set; }
+    }
+
+    public class PokemonType
+    {
+        public string Name { get; set; }
+    }
+}
+
