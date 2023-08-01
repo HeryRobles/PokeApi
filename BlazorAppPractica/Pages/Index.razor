@@ -1,0 +1,117 @@
+﻿@page "/"
+@inject HttpClient Http
+@using Microsoft.AspNetCore.Components
+
+@*Elimina el estilo predeterminado*@
+<style>
+    .click-btn {
+        background: none;
+        border: none;
+        box-shadow: none;
+    }
+</style>
+
+<PageTitle>Pokémon</PageTitle>
+
+<h1>Information</h1>
+
+<button type="button" class="btn btn-success" @onclick="ShowInformation">
+    Show information
+</button>
+
+<button type="button" class="btn btn-danger" @onclick="HideInformation">
+    Hide information
+</button>
+
+@if (showTable)
+{
+    @if (pokemon == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Height</th>
+                    <th>Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in pokemon)
+                {
+                    <tr>
+                        <td>@p.Id</td>
+                        <td>
+                            <button class="click-btn" @onclick="() => NavigateToPokemonDetails(p.Id)">@p.Name</button>
+                        </td>
+                        <td>@p.Height</td>
+                        <td>@p.Weight</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<Pokemon>? pokemon;
+    private bool showTable = false; // Variable para controlar la visibilidad de la tabla
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPokemonAsync();
+    }
+
+    private async Task LoadPokemonAsync()
+    {
+        var response = await Http.GetAsync("https://pokeapi.co/api/v2/pokemon");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            var result = Newtonsoft.Json.JsonConvert.DeserializeObject<PokemonApiResponse>(json);
+            pokemon = result?.Results;
+        }
+        else
+        {
+            // Handle error case here
+            pokemon = new List<Pokemon>();
+        }
+    }
+
+    private void NavigateToPokemonDetails(int pokemonId)
+    {
+        NavigationManager.NavigateTo($"/pokemon/{pokemonId}");
+    }
+
+    public class PokemonApiResponse
+    {
+        public List<Pokemon>? Results { get; set; }
+    }
+
+    // Entidad Pokemon
+    public class Pokemon
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public int Height { get; set; }
+        public int Weight { get; set; }
+    }
+
+    private void ShowInformation()
+    {
+        showTable = true;
+    }
+
+    private void HideInformation()
+    {
+        showTable = false;
+    }
+}
